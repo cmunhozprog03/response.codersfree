@@ -9,9 +9,11 @@ use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use App\Traits\token;
 
 class AuthenticatedSessionController extends Controller
 {
+    use token;
     /**
      * Display the login view.
      *
@@ -56,25 +58,8 @@ class AuthenticatedSessionController extends Controller
 
         if (!$user->accessToken) {
 
+            $this->getAcessToken($user, $service);
 
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-            ])->post('http://apicoders.test/oauth/token', [
-                'grant_type' => 'password',
-                'client_id' => '9410b4da-6250-45d1-bf9b-68d0d63a4d82',
-                'client_secret' => 'e7QuLEkHVNM28XZCpPDMPWFYEYi4F1XdlCk11i00',
-                'username' => $request->email,
-                'password' => $request->password
-            ]);
-
-            $access_token = $response->json();
-
-            $user->accessToken()->create([
-                'service_id' => $service['data']['id'],
-                'access_token' => $access_token['access_token'],
-                'refresh_token' => $access_token['refresh_token'],
-                'expires_at' => now()->addSecond($access_token['expires_in'])
-            ]);
         }
 
 

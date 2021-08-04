@@ -10,9 +10,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use Illuminate\Support\Facades\Http;
+use App\Traits\token;
 
 class RegisteredUserController extends Controller
 {
+    use token;
     /**
      * Display the registration view.
      *
@@ -33,17 +36,32 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $response = Http::withHeaders([
+            'Accept' => 'application/json'
+        ])->post('http://apicoders.test/v1/register', $request->all());
+
+        if ($response->status() == 422) {
+            return back()->withErrors($response->json()['errors']);
+        }
+
+        $service = $response->json();
+
+
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+
+        $this->getAcessToken($user, $service);
 
         event(new Registered($user));
 
