@@ -41,14 +41,47 @@ class AuthenticatedSessionController extends Controller
             'email' => $request->email,
             'password' => $request->password
         ]);
+
+        if ($response->status() == 404) {
+            return back()->withErrors('These credentials do not match our records.');
+
+        }
+
         //return $response['data'];
-        $response = $response->json();
+        $service = $response->json();
 
         $user = User::updateOrCreate([
             'email' => $request->email
-        ],$response['data']);
+        ],$service['data']);
 
-        return $user;
+        if (!$user->accessToken) {
+
+
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+            ])->post('http://apicoders.test/oauth/token', [
+                'grant_type' => 'password',
+                'client_id' => '9410b4da-6250-45d1-bf9b-68d0d63a4d82',
+                'client_secret' => 'e7QuLEkHVNM28XZCpPDMPWFYEYi4F1XdlCk11i00',
+                'username' => $request->email,
+                'password' => $request->password
+            ]);
+
+            $access_token = $response->json();
+
+            $user->accessToken()->create([
+                'service_id' => $service['data']['id'],
+                'access_token' => $access_token['access_token'],
+                'refresh_token' => $access_token['refresh_token'],
+                'expires_at' => now()->addSecond($access_token['expires_in'])
+            ]);
+        }
+
+
+        Auth::login($user, $request->remember);
+
+        return redirect()->intended(RouteServiceProvider::HOME);
+        //return $user;
 
         //return $response->json();
 
