@@ -10,6 +10,9 @@ class PostController extends Controller
     public function store(){
 
 
+        $this->resolveAathorization();
+
+        /*--------------------------*/
 
         $response = Http::withHeaders([
             'Accept' => 'application/json',
